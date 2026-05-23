@@ -1,0 +1,12 @@
+{
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=8.1",
+        "vlucas/phpdotenv": "^5.0",
+        "firebase/php-jwt": "^7.0"
+    }
+}
