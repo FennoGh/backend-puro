@@ -48,7 +48,7 @@ class ProfesionalRepository
     public function findById(int $id): ?array
     {
         $stmt = $this->db->prepare(
-            "SELECT id, nombre, apellido, descripcion, email, telefono,
+            "SELECT id, nombre, apellido, slug, descripcion, email, telefono,
                     direccion, ciudad, pais, codigo_postal, foto_perfil, created_at
              FROM profesionales WHERE id = :id"
         );
@@ -65,7 +65,7 @@ class ProfesionalRepository
     public function findByIdPrivate(int $id): ?array
     {
         $stmt = $this->db->prepare(
-            "SELECT id, nombre, apellido, descripcion, tipo_documento,
+            "SELECT id, nombre, apellido, slug, descripcion, tipo_documento,
                     numero_documento, iban, email, telefono,
                     direccion, ciudad, pais, codigo_postal, foto_perfil, created_at
              FROM profesionales WHERE id = :id"
@@ -77,15 +77,67 @@ class ProfesionalRepository
     }
 
     /**
+     * Verificar si un slug ya existe (excluyendo un ID si es necesario).
+     */
+    public function slugExists(string $slug, ?int $excludeId = null): bool
+    {
+        $sql = "SELECT COUNT(*) AS total FROM profesionales WHERE slug = :slug";
+        $params = [':slug' => $slug];
+        if ($excludeId !== null) {
+            $sql .= " AND id != :exclude_id";
+            $params[':exclude_id'] = $excludeId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return (int) $stmt->fetch()['total'] > 0;
+    }
+
+    /**
+     * Generar un slug único basado en nombre y apellido.
+     */
+    public function generateUniqueSlug(string $nombre, string $apellido, ?int $excludeId = null): string
+    {
+        $baseSlug = \App\Helpers\SlugHelper::slugify($nombre . ' ' . $apellido);
+        $slug = $baseSlug;
+        $counter = 1;
+
+        while ($this->slugExists($slug, $excludeId)) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return $slug;
+    }
+
+    /**
+     * Buscar por Slug.
+     */
+    public function findBySlug(string $slug): ?array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT id, nombre, apellido, slug, descripcion, email, telefono,
+                    direccion, ciudad, pais, codigo_postal, foto_perfil, created_at
+             FROM profesionales WHERE slug = :slug"
+        );
+        $stmt->execute([':slug' => $slug]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
+    }
+
+    /**
      * Registro de profesional.
      */
     public function create(array $data): array
     {
+        // Generar slug único antes de insertar
+        $slug = $this->generateUniqueSlug($data['nombre'], $data['apellido']);
+
         $stmt = $this->db->prepare(
-            "INSERT INTO profesionales (nombre, apellido, descripcion, tipo_documento,
+            "INSERT INTO profesionales (nombre, apellido, slug, descripcion, tipo_documento,
                                         numero_documento, iban, email, password_hash,
                                         telefono, direccion, ciudad, pais, codigo_postal)
-             VALUES (:nombre, :apellido, :descripcion, :tipo_documento,
+             VALUES (:nombre, :apellido, :slug, :descripcion, :tipo_documento,
                      :numero_documento, :iban, :email, :password_hash,
                      :telefono, :direccion, :ciudad, :pais, :codigo_postal)"
         );
@@ -93,6 +145,7 @@ class ProfesionalRepository
         $stmt->execute([
             ':nombre'           => $data['nombre'],
             ':apellido'         => $data['apellido'],
+            ':slug'             => $slug,
             ':descripcion'      => $data['descripcion'] ?? null,
             ':tipo_documento'   => $data['tipo_documento'] ?? null,
             ':numero_documento' => $data['numero_documento'] ?? null,
@@ -111,6 +164,48 @@ class ProfesionalRepository
     }
 
     /**
+     * Actualizar profesional.
+     */
+    public function update(int $id, array $data): ?array
+    {
+        // Si se actualiza el nombre o apellido, regeneramos el slug
+        if (isset($data['nombre']) || isset($data['apellido'])) {
+            $current = $this->findById($id);
+            if ($current) {
+                $nombre = $data['nombre'] ?? $current['nombre'];
+                $apellido = $data['apellido'] ?? $current['apellido'];
+                $data['slug'] = $this->generateUniqueSlug($nombre, $apellido, $id);
+            }
+        }
+
+        $fields = [];
+        $params = [':id' => $id];
+
+        $updatableFields = [
+            'nombre', 'apellido', 'slug', 'descripcion', 'tipo_documento',
+            'numero_documento', 'iban', 'email', 'telefono', 'direccion',
+            'ciudad', 'pais', 'codigo_postal'
+        ];
+
+        foreach ($updatableFields as $field) {
+            if (array_key_exists($field, $data)) {
+                $fields[] = "$field = :$field";
+                $params[":$field"] = $data[$field];
+            }
+        }
+
+        if (empty($fields)) {
+            return $this->findById($id);
+        }
+
+        $sql = "UPDATE profesionales SET " . implode(', ', $fields) . " WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $this->findById($id);
+    }
+
+    /**
      * Verificar si un email ya está registrado.
      */
     public function emailExists(string $email): bool
@@ -124,17 +219,6 @@ class ProfesionalRepository
 
     /**
      * Actualizar la foto de perfil de un profesional.
-     *
-     * Guarda la ruta relativa en la base de datos.
-     * Ejemplo: 'profesionales/42/profile.jpg'
-     *
-     * El ImageService se encarga de mover el archivo al disco.
-     * Aquí solo guardamos la referencia.
-     *
-     * @param int         $id            ID del profesional
-     * @param string|null $rutaRelativa  Ruta de la imagen (null para eliminar)
-     *
-     * @return array|null El profesional actualizado
      */
     public function updateFoto(int $id, ?string $rutaRelativa): ?array
     {
@@ -154,7 +238,7 @@ class ProfesionalRepository
      */
     public function findAll(array $filters = [], int $page = 1, int $limit = 20): array
     {
-        $sql = "SELECT id, nombre, apellido, descripcion, ciudad, pais, foto_perfil
+        $sql = "SELECT id, nombre, apellido, slug, descripcion, ciudad, pais, foto_perfil
                 FROM profesionales WHERE 1=1";
 
         $params = [];

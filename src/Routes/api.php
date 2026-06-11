@@ -29,6 +29,7 @@ use App\Controllers\ServicioController;
 use App\Controllers\UsuarioController;
 use App\Controllers\ReservaController;
 use App\Controllers\DisponibilidadController;
+use App\Controllers\ChatController;
 use App\Middleware\CorsMiddleware;
 use App\Middleware\RateLimitMiddleware;
 use App\Middleware\AuthMiddleware;
@@ -58,8 +59,9 @@ $router->post('usuarios',      [UsuarioController::class, 'register']);
 $router->post('profesionales', [ProfesionalController::class, 'register']);
 
 // ─── Buscar profesionales ───
-$router->get('profesionales',     [ProfesionalController::class, 'index']);
-$router->get('profesionales/:id', [ProfesionalController::class, 'show']);
+$router->get('profesionales',          [ProfesionalController::class, 'index']);
+$router->get('profesionales/:id',      [ProfesionalController::class, 'show']);
+$router->get('profesionales/slug/:slug', [ProfesionalController::class, 'showBySlug']);
 
 // ─── Buscar servicios ───
 $router->get('servicios',          [ServicioController::class, 'index']);
@@ -127,3 +129,9 @@ $mwAuth = [AuthMiddleware::class];
 
 $router->get('reservas/:id',           [ReservaController::class, 'show'],      $mwAuth);
 $router->post('reservas/:id/verificar', [ReservaController::class, 'verificar'], $mwAuth);
+
+// ─── Chat y Mensajería (Polled) ───
+$router->get('conversaciones',              [ChatController::class, 'index'],        $mwAuth);
+$router->post('conversaciones',             [ChatController::class, 'store'],        $mwAuth);
+$router->get('conversaciones/:id/mensajes', [ChatController::class, 'showMessages'], $mwAuth);
+$router->post('conversaciones/:id/mensajes', [ChatController::class, 'sendMessage'],  $mwAuth);

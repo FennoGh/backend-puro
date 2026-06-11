@@ -143,6 +143,10 @@ class ReservaController
     public function misReservas(): void
     {
         $userId = (int) $_REQUEST['auth_user_id'];
+
+        // Lazy auto-release of old escrow reservations (72h)
+        $this->pagoRepo->autoLiberarSaldos();
+
         $page   = max(1, (int) ($_GET['page'] ?? 1));
         $limit  = min(100, max(1, (int) ($_GET['limit'] ?? 20)));
 
@@ -174,6 +178,10 @@ class ReservaController
     public function agendaProfesional(): void
     {
         $profId = (int) $_REQUEST['auth_user_id'];
+
+        // Lazy auto-release of old escrow reservations (72h)
+        $this->pagoRepo->autoLiberarSaldos();
+
         $page   = max(1, (int) ($_GET['page'] ?? 1));
         $limit  = min(100, max(1, (int) ($_GET['limit'] ?? 20)));
 

@@ -167,7 +167,56 @@ class ProfesionalController
     /** PUT /api/v1/profesionales/me (protegido) */
     public function update(): void
     {
-        Response::error(501, 'NOT_IMPLEMENTED', 'Endpoint en desarrollo');
+        $profId = (int) $_REQUEST['auth_user_id'];
+        $body = json_decode(file_get_contents('php://input'), true);
+
+        if (!$body) {
+            Response::error(400, 'BAD_REQUEST', 'El cuerpo de la petición debe ser JSON válido');
+        }
+
+        // Validar campos obligatorios si están presentes
+        if (isset($body['nombre']) && empty($body['nombre'])) {
+            Response::error(422, 'VALIDATION_ERROR', 'El nombre no puede estar vacío');
+        }
+        if (isset($body['apellido']) && empty($body['apellido'])) {
+            Response::error(422, 'VALIDATION_ERROR', 'El apellido no puede estar vacío');
+        }
+        if (isset($body['email'])) {
+            if (empty($body['email']) || !filter_var($body['email'], FILTER_VALIDATE_EMAIL)) {
+                Response::error(422, 'VALIDATION_ERROR', 'Formato de email inválido o vacío');
+            }
+        }
+
+        // Si se intenta cambiar el email, verificar que no esté duplicado
+        if (isset($body['email'])) {
+            $current = $this->repo->findByIdPrivate($profId);
+            if ($current && $current['email'] !== $body['email']) {
+                if ($this->repo->emailExists($body['email'])) {
+                    Response::error(409, 'DUPLICATE_EMAIL', 'Ya existe una cuenta con este email');
+                }
+            }
+        }
+
+        // Realizar la actualización en base de datos
+        $updatedProf = $this->repo->update($profId, $body);
+
+        if (!$updatedProf) {
+            Response::error(404, 'NOT_FOUND', 'Profesional no encontrado');
+        }
+
+        Response::json($updatedProf);
+    }
+
+    /** GET /api/v1/profesionales/slug/:slug (público) */
+    public function showBySlug(string $slug): void
+    {
+        $prof = $this->repo->findBySlug($slug);
+
+        if (!$prof) {
+            Response::error(404, 'NOT_FOUND', "Profesional con slug '$slug' no encontrado");
+        }
+
+        Response::json($prof);
     }
 
     /**

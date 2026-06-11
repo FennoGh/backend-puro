@@ -407,6 +407,27 @@ class PagoRepository
     }
 
     /**
+     * Liberar automáticamente los pagos en estado 'retenido' que tengan más de 72 horas
+     * desde que terminó el servicio (fecha + hora_fin) y no tengan disputas.
+     *
+     * @return int Cantidad de reservas auto-liberadas
+     */
+    public function autoLiberarSaldos(): int
+    {
+        $limite = date('Y-m-d H:i:s', strtotime('-72 hours'));
+
+        $sql = "UPDATE pagos 
+                SET estado = 'liberado', verificado_usuario = 1, verificado_profesional = 1
+                WHERE estado = 'retenido'
+                  AND CONCAT(fecha, ' ', hora_fin) <= :limite";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':limite' => $limite]);
+
+        return (int) $stmt->rowCount();
+    }
+
+    /**
      * Formatear un pago desde la fila del JOIN (perspectiva usuario).
      *
      * ¿Por qué formatear?
