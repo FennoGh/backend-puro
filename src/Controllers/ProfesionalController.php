@@ -107,11 +107,23 @@ class ProfesionalController
 
         try {
             // ─── Validar campos obligatorios ───
+            // Todos los campos del profesional son obligatorios (el esquema los
+            // declara NOT NULL), salvo la foto, que se valida aparte más abajo.
             Validator::required([
-                'nombre'   => $body['nombre'] ?? null,
-                'apellido' => $body['apellido'] ?? null,
-                'email'    => $body['email'] ?? null,
-                'password' => $body['password'] ?? null,
+                'nombre'           => $body['nombre'] ?? null,
+                'apellido'         => $body['apellido'] ?? null,
+                'tagline'          => $body['tagline'] ?? null,
+                'bio'              => $body['bio'] ?? null,
+                'tipo_documento'   => $body['tipo_documento'] ?? null,
+                'numero_documento' => $body['numero_documento'] ?? null,
+                'iban'             => $body['iban'] ?? null,
+                'email'            => $body['email'] ?? null,
+                'password'         => $body['password'] ?? null,
+                'telefono'         => $body['telefono'] ?? null,
+                'direccion'        => $body['direccion'] ?? null,
+                'ciudad'           => $body['ciudad'] ?? null,
+                'pais'             => $body['pais'] ?? null,
+                'codigo_postal'    => $body['codigo_postal'] ?? null,
             ]);
             Validator::email($body['email']);
             Validator::minLength($body['password'], 8, 'password');

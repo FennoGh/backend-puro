@@ -44,9 +44,11 @@ class UsuarioController
         $body = json_decode(file_get_contents('php://input'), true);
 
         // ─── Validar campos obligatorios ───
+        // telefono es NOT NULL en el esquema de usuarios.
         if (empty($body['nombre']) || empty($body['apellido'])
-            || empty($body['email']) || empty($body['password'])) {
-            Response::error(422, 'VALIDATION_ERROR', 'Campos obligatorios: nombre, apellido, email, password');
+            || empty($body['email']) || empty($body['password'])
+            || empty($body['telefono'])) {
+            Response::error(422, 'VALIDATION_ERROR', 'Campos obligatorios: nombre, apellido, email, password, telefono');
         }
 
         // ─── Validar email ───

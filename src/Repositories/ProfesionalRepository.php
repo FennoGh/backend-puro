@@ -48,7 +48,7 @@ class ProfesionalRepository
     public function findById(int $id): ?array
     {
         $stmt = $this->db->prepare(
-            "SELECT id, nombre, apellido, slug, descripcion, email, telefono,
+            "SELECT id, nombre, apellido, descripcion, email, telefono,
                     direccion, ciudad, pais, codigo_postal, foto_perfil, created_at
              FROM profesionales WHERE id = :id"
         );
@@ -65,7 +65,7 @@ class ProfesionalRepository
     public function findByIdPrivate(int $id): ?array
     {
         $stmt = $this->db->prepare(
-            "SELECT id, nombre, apellido, slug, descripcion, tipo_documento,
+            "SELECT id, nombre, apellido, descripcion, tipo_documento,
                     numero_documento, iban, email, telefono,
                     direccion, ciudad, pais, codigo_postal, foto_perfil, created_at
              FROM profesionales WHERE id = :id"
@@ -134,10 +134,10 @@ class ProfesionalRepository
         $slug = $this->generateUniqueSlug($data['nombre'], $data['apellido']);
 
         $stmt = $this->db->prepare(
-            "INSERT INTO profesionales (nombre, apellido, slug, descripcion, tipo_documento,
+            "INSERT INTO profesionales (nombre, apellido, descripcion, tipo_documento,
                                         numero_documento, iban, email, password_hash,
                                         telefono, direccion, ciudad, pais, codigo_postal)
-             VALUES (:nombre, :apellido, :slug, :descripcion, :tipo_documento,
+             VALUES (:nombre, :apellido, :descripcion, :tipo_documento,
                      :numero_documento, :iban, :email, :password_hash,
                      :telefono, :direccion, :ciudad, :pais, :codigo_postal)"
         );
@@ -145,7 +145,6 @@ class ProfesionalRepository
         $stmt->execute([
             ':nombre'           => $data['nombre'],
             ':apellido'         => $data['apellido'],
-            ':slug'             => $slug,
             ':descripcion'      => $data['descripcion'] ?? null,
             ':tipo_documento'   => $data['tipo_documento'] ?? null,
             ':numero_documento' => $data['numero_documento'] ?? null,
@@ -238,7 +237,7 @@ class ProfesionalRepository
      */
     public function findAll(array $filters = [], int $page = 1, int $limit = 20): array
     {
-        $sql = "SELECT id, nombre, apellido, slug, descripcion, ciudad, pais, foto_perfil
+        $sql = "SELECT id, nombre, apellido, descripcion, ciudad, pais, foto_perfil
                 FROM profesionales WHERE 1=1";
 
         $params = [];
@@ -254,10 +253,11 @@ class ProfesionalRepository
         }
 
         if (!empty($filters['q'])) {
-            $sql .= " AND (nombre LIKE :q OR apellido LIKE :q2 OR descripcion LIKE :q3)";
+            $sql .= " AND (nombre LIKE :q OR apellido LIKE :q2 OR tagline LIKE :q3 OR bio LIKE :q4)";
             $params[':q']  = '%' . $filters['q'] . '%';
             $params[':q2'] = '%' . $filters['q'] . '%';
             $params[':q3'] = '%' . $filters['q'] . '%';
+            $params[':q4'] = '%' . $filters['q'] . '%';
         }
 
         // Count
