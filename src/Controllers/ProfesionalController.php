@@ -219,18 +219,6 @@ class ProfesionalController
         Response::json($updatedProf);
     }
 
-    /** GET /api/v1/profesionales/slug/:slug (público) */
-    public function showBySlug(string $slug): void
-    {
-        $prof = $this->repo->findBySlug($slug);
-
-        if (!$prof) {
-            Response::error(404, 'NOT_FOUND', "Profesional con slug '$slug' no encontrado");
-        }
-
-        Response::json($prof);
-    }
-
     /**
      * POST /api/v1/profesionales/me/foto
      *

@@ -61,7 +61,6 @@ $router->post('profesionales', [ProfesionalController::class, 'register']);
 // ─── Buscar profesionales ───
 $router->get('profesionales',          [ProfesionalController::class, 'index']);
 $router->get('profesionales/:id',      [ProfesionalController::class, 'show']);
-$router->get('profesionales/slug/:slug', [ProfesionalController::class, 'showBySlug']);
 
 // ─── Buscar servicios ───
 $router->get('servicios',          [ServicioController::class, 'index']);
