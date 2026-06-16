@@ -67,7 +67,7 @@ class ServicioRepository
         //   1. SELECT servicios
         //   2. Para cada servicio, SELECT profesional WHERE id = ...
         // Eso sería el "problema N+1" (1 query + N queries extra).
-        $sql = "SELECT s.id, s.nombre, s.descripcion, s.precio, s.duracion_sesion,
+        $sql = "SELECT s.id, s.nombre, s.tagline, s.bio, s.foto, s.precio, s.duracion_sesion,
                        s.direccion, s.ciudad, s.pais,
                        p.id AS prof_id, p.nombre AS prof_nombre, p.apellido AS prof_apellido
                 FROM servicios s
@@ -112,9 +112,10 @@ class ServicioRepository
         // Es lento en tablas grandes (no usa índice), pero suficiente para un MVP.
         // Para escalar: usa FULLTEXT index de MySQL o Elasticsearch.
         if (!empty($filters['q'])) {
-            $sql .= " AND (s.nombre LIKE :q OR s.descripcion LIKE :q2)";
+            $sql .= " AND (s.nombre LIKE :q OR s.tagline LIKE :q2 OR s.bio LIKE :q3)";
             $params[':q']  = '%' . $filters['q'] . '%';
             $params[':q2'] = '%' . $filters['q'] . '%';
+            $params[':q3'] = '%' . $filters['q'] . '%';
         }
 
         // ─── Contar el total ANTES de paginar ───
@@ -168,7 +169,9 @@ class ServicioRepository
             return [
                 'id'              => (int) $row['id'],
                 'nombre'          => $row['nombre'],
-                'descripcion'     => $row['descripcion'],
+                'tagline'         => $row['tagline'],
+                'bio'             => $row['bio'],
+                'foto'            => $row['foto'],
                 'precio'          => (float) $row['precio'],
                 'duracion_sesion' => (int) $row['duracion_sesion'],
                 'ciudad'          => $row['ciudad'],
@@ -193,7 +196,8 @@ class ServicioRepository
     {
         $stmt = $this->db->prepare(
             "SELECT s.*, p.id AS prof_id, p.nombre AS prof_nombre,
-                    p.apellido AS prof_apellido, p.descripcion AS prof_descripcion
+                    p.apellido AS prof_apellido, p.tagline AS prof_tagline,
+                    p.bio AS prof_bio
              FROM servicios s
              JOIN profesionales p ON s.id_profesional = p.id
              WHERE s.id = :id"
@@ -208,17 +212,20 @@ class ServicioRepository
         return [
             'id'              => (int) $row['id'],
             'nombre'          => $row['nombre'],
-            'descripcion'     => $row['descripcion'],
+            'tagline'         => $row['tagline'],
+            'bio'             => $row['bio'],
+            'foto'            => $row['foto'],
             'precio'          => (float) $row['precio'],
             'duracion_sesion' => (int) $row['duracion_sesion'],
             'direccion'       => $row['direccion'],
             'ciudad'          => $row['ciudad'],
             'pais'            => $row['pais'],
             'profesional'     => [
-                'id'          => (int) $row['prof_id'],
-                'nombre'      => $row['prof_nombre'],
-                'apellido'    => $row['prof_apellido'],
-                'descripcion' => $row['prof_descripcion'],
+                'id'       => (int) $row['prof_id'],
+                'nombre'   => $row['prof_nombre'],
+                'apellido' => $row['prof_apellido'],
+                'tagline'  => $row['prof_tagline'],
+                'bio'      => $row['prof_bio'],
             ],
         ];
     }
@@ -230,7 +237,7 @@ class ServicioRepository
     public function findByProfesional(int $profesionalId): array
     {
         $stmt = $this->db->prepare(
-            "SELECT id, nombre, descripcion, precio, duracion_sesion,
+            "SELECT id, nombre, tagline, bio, foto, precio, duracion_sesion,
                     direccion, ciudad, pais, created_at
              FROM servicios
              WHERE id_profesional = :prof_id
@@ -250,16 +257,18 @@ class ServicioRepository
     public function create(array $data): array
     {
         $stmt = $this->db->prepare(
-            "INSERT INTO servicios (id_profesional, nombre, descripcion, precio,
+            "INSERT INTO servicios (id_profesional, nombre, tagline, bio, foto, precio,
                                     duracion_sesion, direccion, ciudad, pais)
-             VALUES (:id_profesional, :nombre, :descripcion, :precio,
+             VALUES (:id_profesional, :nombre, :tagline, :bio, :foto, :precio,
                      :duracion_sesion, :direccion, :ciudad, :pais)"
         );
 
         $stmt->execute([
             ':id_profesional' => $data['id_profesional'],
             ':nombre'         => $data['nombre'],
-            ':descripcion'    => $data['descripcion'] ?? null,
+            ':tagline'        => $data['tagline'] ?? null,
+            ':bio'            => $data['bio'] ?? null,
+            ':foto'           => $data['foto'] ?? null,
             ':precio'         => $data['precio'],
             ':duracion_sesion'=> $data['duracion_sesion'],
             ':direccion'      => $data['direccion'] ?? null,
@@ -282,7 +291,9 @@ class ServicioRepository
         $stmt = $this->db->prepare(
             "UPDATE servicios
              SET nombre = :nombre,
-                 descripcion = :descripcion,
+                 tagline = :tagline,
+                 bio = :bio,
+                 foto = :foto,
                  precio = :precio,
                  duracion_sesion = :duracion_sesion,
                  direccion = :direccion,
@@ -294,7 +305,9 @@ class ServicioRepository
         $stmt->execute([
             ':id'              => $id,
             ':nombre'          => $data['nombre'],
-            ':descripcion'     => $data['descripcion'] ?? null,
+            ':tagline'         => $data['tagline'] ?? null,
+            ':bio'             => $data['bio'] ?? null,
+            ':foto'            => $data['foto'] ?? null,
             ':precio'          => $data['precio'],
             ':duracion_sesion' => $data['duracion_sesion'],
             ':direccion'       => $data['direccion'] ?? null,

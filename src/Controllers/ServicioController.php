@@ -186,7 +186,8 @@ class ServicioController
      * Body:
      *   {
      *     "nombre": "Masaje descontracturante",
-     *     "descripcion": "Sesión enfocada en zona cervical y lumbar",
+     *     "tagline": "Sesión enfocada en cervicales y lumbares",
+     *     "bio": "Trabajo profundo para aliviar la tensión acumulada.",
      *     "precio": 55.00,
      *     "duracion_sesion": 60,
      *     "ciudad": "Barcelona",
