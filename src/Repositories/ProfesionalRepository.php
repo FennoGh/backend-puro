@@ -81,13 +81,19 @@ class ProfesionalRepository
      */
     public function create(array $data): array
     {
+        // foto_perfil es NOT NULL en el esquema. La foto se sube DESPUÉS (necesita
+        // el id para la ruta), así que insertamos '' como placeholder y luego
+        // updateFoto() la sustituye. Sin esto, un MySQL en modo estricto rechaza
+        // el INSERT con "Field 'foto_perfil' doesn't have a default value".
         $stmt = $this->db->prepare(
             "INSERT INTO profesionales (nombre, apellido, tagline, bio, tipo_documento,
                                         numero_documento, iban, email, password_hash,
-                                        telefono, direccion, ciudad, pais, codigo_postal)
+                                        telefono, direccion, ciudad, pais, codigo_postal,
+                                        foto_perfil)
              VALUES (:nombre, :apellido, :tagline, :bio, :tipo_documento,
                      :numero_documento, :iban, :email, :password_hash,
-                     :telefono, :direccion, :ciudad, :pais, :codigo_postal)"
+                     :telefono, :direccion, :ciudad, :pais, :codigo_postal,
+                     '')"
         );
 
         $stmt->execute([
@@ -153,6 +159,30 @@ class ProfesionalRepository
         );
         $stmt->execute([':email' => $email]);
         return (int) $stmt->fetch()['total'] > 0;
+    }
+
+    /**
+     * Verificar si un número de documento ya está registrado.
+     * (numero_documento es UNIQUE en el esquema.)
+     */
+    public function documentoExists(string $numeroDocumento): bool
+    {
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) AS total FROM profesionales WHERE numero_documento = :doc"
+        );
+        $stmt->execute([':doc' => $numeroDocumento]);
+        return (int) $stmt->fetch()['total'] > 0;
+    }
+
+    /**
+     * Eliminar un profesional por ID.
+     * Se usa para limpiar un alta a medias si falla la subida de la foto.
+     */
+    public function delete(int $id): bool
+    {
+        $stmt = $this->db->prepare("DELETE FROM profesionales WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        return $stmt->rowCount() > 0;
     }
 
     /**

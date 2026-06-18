@@ -160,6 +160,13 @@ class AuthService
             throw new \RuntimeException('DUPLICATE_EMAIL');
         }
 
+        // numero_documento es UNIQUE: si no lo comprobamos aquí, el INSERT
+        // revienta con una PDOException → 500 genérico en vez de un 409 claro.
+        if (!empty($data['numero_documento'])
+            && $this->profRepo->documentoExists($data['numero_documento'])) {
+            throw new \RuntimeException('DUPLICATE_DOCUMENT');
+        }
+
         $data['password_hash'] = password_hash($data['password'], PASSWORD_DEFAULT);
         unset($data['password']);
 

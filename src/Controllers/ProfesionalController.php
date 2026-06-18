@@ -145,7 +145,16 @@ class ProfesionalController
             // ─── 2. Subir la foto ───
             // ImageService valida el archivo (tipo, tamaño, extensión)
             // y lo mueve a images/profesionales/{id}/profile.jpg
-            $rutaFoto = $this->imageService->subirFotoPerfil($_FILES['foto'], $profId);
+            //
+            // Si la foto falla, borramos el profesional recién creado: si no,
+            // quedaría un alta a medias (sin foto) cuyo email y documento ya
+            // existen, bloqueando el reintento con un 409 confuso.
+            try {
+                $rutaFoto = $this->imageService->subirFotoPerfil($_FILES['foto'], $profId);
+            } catch (\Throwable $e) {
+                $this->repo->delete($profId);
+                throw $e;
+            }
 
             // ─── 3. Guardar la ruta en la base de datos ───
             $this->repo->updateFoto($profId, $rutaFoto);
@@ -160,6 +169,16 @@ class ProfesionalController
             Response::error(422, 'VALIDATION_ERROR', $e->getMessage());
         } catch (ConflictException $e) {
             Response::error(409, $e->getErrorCode(), $e->getMessage());
+        } catch (\RuntimeException $e) {
+            // AuthService señala los duplicados con RuntimeException; los
+            // traducimos a un 409 claro en vez de dejar que suban a un 500.
+            if ($e->getMessage() === 'DUPLICATE_EMAIL') {
+                Response::error(409, 'DUPLICATE_EMAIL', 'Ya existe una cuenta con este email');
+            }
+            if ($e->getMessage() === 'DUPLICATE_DOCUMENT') {
+                Response::error(409, 'DUPLICATE_DOCUMENT', 'Ya existe una cuenta con este número de documento');
+            }
+            throw $e; // Otro RuntimeException: que lo gestione el handler global.
         }
     }
 
