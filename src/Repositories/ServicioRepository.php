@@ -319,6 +319,18 @@ class ServicioRepository
     }
 
     /**
+     * Actualizar solo la foto de un servicio.
+     */
+    public function updateFoto(int $id, string $foto): ?array
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE servicios SET foto = :foto WHERE id = :id"
+        );
+        $stmt->execute([':foto' => $foto, ':id' => $id]);
+        return $this->findById($id);
+    }
+
+    /**
      * Eliminar un servicio.
      * CASCADE en el schema borra la disponibilidad asociada automáticamente.
      */

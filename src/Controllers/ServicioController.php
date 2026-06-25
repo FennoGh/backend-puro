@@ -28,6 +28,7 @@ namespace App\Controllers;
 
 use App\Helpers\Response;
 use App\Repositories\ServicioRepository;
+use App\Services\ImageService;
 use App\Services\SlotService;
 
 class ServicioController
@@ -234,6 +235,42 @@ class ServicioController
         }
 
         $result = $this->repo->update((int) $id, $body);
+        Response::json($result);
+    }
+
+    /**
+     * POST /api/v1/profesionales/me/servicios/:id/foto
+     *
+     * Subir o reemplazar la foto de portada de un servicio.
+     * Acepta multipart/form-data con el campo "foto".
+     */
+    public function subirFotoServicio(string $id): void
+    {
+        $profId = (int) $_REQUEST['auth_user_id'];
+
+        $servicio = $this->repo->findById((int) $id);
+        if (!$servicio || $servicio['profesional']['id'] !== $profId) {
+            Response::error(403, 'FORBIDDEN', 'No puedes modificar un servicio que no es tuyo');
+        }
+
+        if (empty($_FILES['foto']) || $_FILES['foto']['error'] === UPLOAD_ERR_NO_FILE) {
+            Response::error(422, 'VALIDATION_ERROR', 'Envía un campo "foto" con la imagen.');
+        }
+
+        $imageService = new ImageService();
+        $fotoAnterior = $servicio['foto'] ?? null;
+
+        try {
+            $rutaRelativa = $imageService->subirFotoServicio($_FILES['foto'], (int) $id);
+        } catch (\App\Exceptions\ValidationException $e) {
+            Response::error(422, 'VALIDATION_ERROR', $e->getMessage());
+        }
+
+        if ($fotoAnterior && $fotoAnterior !== $rutaRelativa) {
+            $imageService->eliminar($fotoAnterior);
+        }
+
+        $result = $this->repo->updateFoto((int) $id, $rutaRelativa);
         Response::json($result);
     }
 

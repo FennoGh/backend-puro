@@ -145,6 +145,37 @@ class ImageService
     }
 
     /**
+     * Subir la foto de portada de un servicio.
+     *
+     * @param array $file        El array de $_FILES['foto']
+     * @param int   $servicioId  ID del servicio
+     * @return string La ruta relativa (para guardar en la DB).
+     *                Ejemplo: 'servicios/7/cover.jpg'
+     */
+    public function subirFotoServicio(array $file, int $servicioId): string
+    {
+        $this->validarArchivo($file);
+
+        $extension    = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $dirRelativo  = 'servicios/' . $servicioId;
+        $dirAbsoluto  = $this->basePath . '/' . $dirRelativo;
+
+        if (!is_dir($dirAbsoluto)) {
+            mkdir($dirAbsoluto, 0755, true);
+        }
+
+        $nombreArchivo = 'cover.' . $extension;
+        $rutaRelativa  = $dirRelativo . '/' . $nombreArchivo;
+        $rutaAbsoluta  = $dirAbsoluto . '/' . $nombreArchivo;
+
+        if (!move_uploaded_file($file['tmp_name'], $rutaAbsoluta)) {
+            throw new ValidationException('Error al guardar la imagen. Verifica permisos del directorio.');
+        }
+
+        return $rutaRelativa;
+    }
+
+    /**
      * Obtener la URL pública de una imagen.
      *
      * @param string|null $rutaRelativa  Lo que está guardado en la DB.

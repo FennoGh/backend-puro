@@ -106,6 +106,7 @@ $router->get('profesionales/me/servicios',      [ServicioController::class, 'mis
 $router->post('profesionales/me/servicios',     [ServicioController::class, 'crearServicio'], $mwProfesional);
 $router->put('profesionales/me/servicios/:id',  [ServicioController::class, 'editarServicio'], $mwProfesional);
 $router->delete('profesionales/me/servicios/:id', [ServicioController::class, 'eliminarServicio'], $mwProfesional);
+$router->post('profesionales/me/servicios/:id/foto', [ServicioController::class, 'subirFotoServicio'], $mwProfesional);
 
 // ─── Disponibilidad ───
 $router->get('profesionales/me/servicios/:id/disponibilidad',   [DisponibilidadController::class, 'index'],  $mwProfesional);
